@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Calculadora de Itens — Filtrada (materiais usados)</title>
+<title>Calculadora de Itens — Final</title>
 <style>
   body{font-family:Arial, sans-serif; background:#f0f2f5; padding:20px;}
   .container{max-width:980px; margin:0 auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 6px 18px rgba(16,24,40,0.06);}
@@ -20,11 +20,13 @@
   .summary{background:#fbfdff; border:1px solid #e6eefc; padding:12px; border-radius:8px; margin-top:12px;}
   .summary div{display:flex; justify-content:space-between; padding:6px 0;}
   .small{font-size:13px; color:#94a3b8;}
+  .actions{display:flex; gap:8px; margin-top:10px;}
+  .copy-btn{padding:8px 10px; border-radius:6px; border:1px solid #d0d7de; background:white; cursor:pointer;}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Calculadora de Itens</h1>
+  <h1>Calculadora de Itens — Final</h1>
 
   <label for="itemSelect">Item</label>
   <select id="itemSelect"></select>
@@ -38,6 +40,11 @@
       <label>&nbsp;</label>
       <button id="calcBtn">Calcular</button>
     </div>
+  </div>
+
+  <div class="actions">
+    <button class="copy-btn" id="copyBtn">Copiar totais</button>
+    <button class="copy-btn" id="csvBtn">Exportar CSV</button>
   </div>
 
   <div class="summary" id="summaryBox" style="display:none; margin-top:16px;">
@@ -61,6 +68,7 @@
     <tbody id="materialsBody"></tbody>
   </table>
 
+  <div class="muted" style="margin-top:10px">*A tabela mostra apenas os materiais usados (valores &gt; 0). Lavagem de Dinheiro: Valor obtido R$ 9.000,00 por cada R$ 10.000,00 de dinheiro sujo.</div>
 </div>
 
 <script>
@@ -77,7 +85,7 @@ const ITEMS = [
   {category:"Pistolas", item:"M45A1", Price_SP:50000, Price_CP:35000, WeightKg:2.75, Borracha:155, Plastico:175, Vidro:155, Pecas_de_Armas:5, Aluminio:100, Cobre:100, Mola_de_Metal:1, Corpo:1},
   {category:"Munições", item:"Munição de Sniper", Price_SP:25, Price_CP:25, WeightKg:0.025, Aluminio:18, Cobre:12, Frasco_de_Pólvora:1},
   {category:"Diversos", item:"Seringa de Metadona", Price_SP:700, Price_CP:600, WeightKg:0.05, Acido_Sulfurico:5, Alcool:5, Analgesicos:2},
-  {category:"Diversos", item:"Reais (Lavagem de Dinheiro)", Price_SP:5500, Price_CP:6500, WeightKg:0, Dinheiro_Sujo:10000, Agua_Destilada:6, Cloro:6, ValorObtidoPor10000:9000}
+  {category:"Diversos", item:"Lavagem de Dinheiro", Price_SP:5500, Price_CP:6500, WeightKg:0, Dinheiro_Sujo:10000, Agua_Destilada:6, Cloro:6, ValorObtidoPor10000:9000}
 ];
 
 const LABELS = {
@@ -138,7 +146,7 @@ function calcAndRender(){
 
   // valor obtido (se aplicável)
   if(item.ValorObtidoPor10000){
-    const perUnit = Number(item.ValorObtidoPor10000) * ((Number(item.Dinheiro_Sujo) || Number(item.ValorPor) || 10000) / (Number(item.ValorPor) || 10000));
+    const perUnit = Number(item.ValorObtidoPor10000);
     document.getElementById('sumValorObt').textContent = formatMoney(perUnit);
     document.getElementById('sumValorObtTotal').textContent = formatMoney(perUnit * qty);
     document.getElementById('valorObtSection').style.display = '';
@@ -158,14 +166,22 @@ function calcAndRender(){
       const nameCell = document.createElement('td');
       nameCell.textContent = LABELS[k] || k;
       const perCell = document.createElement('td');
-      if(k === 'Price_SP' || k === 'Price_CP') perCell.textContent = formatMoney(val);
-      else if(k === 'WeightKg') perCell.textContent = formatWeight(val);
-      else perCell.textContent = String(val);
       const totalCell = document.createElement('td');
-      if(k === 'Price_SP' || k === 'Price_CP') totalCell.textContent = formatMoney(val * qty);
-      else if(k === 'WeightKg') totalCell.textContent = formatWeight(val * qty);
-      else totalCell.textContent = String(val * qty);
-      tr.appendChild(nameCell); tr.appendChild(perCell); tr.appendChild(totalCell);
+
+      if(k === 'Price_SP' || k === 'Price_CP' || k === 'Dinheiro_Sujo'){
+        perCell.textContent = formatMoney(val);
+        totalCell.textContent = formatMoney(val * qty);
+      } else if(k === 'WeightKg'){
+        perCell.textContent = formatWeight(val);
+        totalCell.textContent = formatWeight(val * qty);
+      } else {
+        perCell.textContent = String(val);
+        totalCell.textContent = String(val * qty);
+      }
+
+      tr.appendChild(nameCell);
+      tr.appendChild(perCell);
+      tr.appendChild(totalCell);
       materialsBody.appendChild(tr);
     }
   });
@@ -175,7 +191,6 @@ calcBtn.addEventListener('click', calcAndRender);
 itemSelect.addEventListener('change', calcAndRender);
 qtyInput.addEventListener('keyup', (e)=>{ if(e.key==='Enter') calcAndRender(); });
 
-// inicial
 calcAndRender();
 </script>
 </body>
