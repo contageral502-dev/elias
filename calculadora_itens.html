@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calculadora de Itens — Atualizada</title>
+<style>
+  :root{
+    --bg:#fafafa;
+    --card:#ffffff;
+    --muted:#666;
+    --accent:#1766ff;
+    --border:#e6e9ef;
+  }
+  *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;}
+  body{margin:0;background:var(--bg);color:#0b0b0b;padding:20px;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;}
+  .wrap{width:100%;max-width:1000px;}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:12px;}
+  header h1{font-size:20px;margin:0;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(16,24,40,0.04);}
+  .controls{display:grid;grid-template-columns:1fr 120px 120px;gap:10px;align-items:end;margin-bottom:14px;}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  select,input[type="number"]{width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);font-size:14px;background:white;}
+  button{padding:9px 12px;border-radius:8px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer;}
+  .results{display:grid;grid-template-columns:1fr 360px;gap:12px;margin-top:12px;}
+  .summary{padding:12px;border-radius:8px;border:1px solid var(--border);background:#fff;}
+  .summary .line{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #eee;}
+  .summary .line:last-child{border-bottom:0;}
+  .summary .label{color:var(--muted);font-size:13px;}
+  .summary .value{font-weight:700;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;}
+  th,td{padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:left;font-size:14px;}
+  th{background:#fafafa;color:var(--muted);font-weight:600;position:sticky;top:0;}
+  .small{font-size:13px;color:var(--muted);}
+  .copy-btn{background:transparent;border:1px solid var(--border);padding:8px 10px;border-radius:8px;cursor:pointer;}
+  @media (max-width:900px){
+    .controls{grid-template-columns:1fr 100px;grid-auto-rows:min-content;}
+    .results{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Calculadora de Itens — Valores atualizados</h1>
+        <div class="small">Preços S/P e C/P adicionados. Escolha um item e a quantidade.</div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <div>
+          <label for="itemSelect">Item</label>
+          <select id="itemSelect" aria-label="Escolha o item"></select>
+        </div>
+
+        <div>
+          <label for="qtyInput">Quantidade</label>
+          <input id="qtyInput" type="number" min="1" value="1" step="1" />
+        </div>
+
+        <div>
+          <label>&nbsp;</label>
+          <button id="applyBtn">Calcular</button>
+        </div>
+      </div>
+
+      <div class="results">
+        <div>
+          <div class="summary">
+            <div class="line"><div class="label">Item</div><div class="value" id="sumItem">—</div></div>
+            <div class="line"><div class="label">Categoria</div><div class="value" id="sumCategory">—</div></div>
+            <div class="line"><div class="label">Preço S/P por unidade</div><div class="value" id="sumPriceSP">R$ 0</div></div>
+            <div class="line"><div class="label">Preço S/P total</div><div class="value" id="sumPriceSPTotal">R$ 0</div></div>
+            <div class="line"><div class="label">Preço C/P por unidade</div><div class="value" id="sumPriceCP">R$ 0</div></div>
+            <div class="line"><div class="label">Preço C/P total</div><div class="value" id="sumPriceCPTotal">R$ 0</div></div>
+            <div class="line"><div class="label">Peso por unidade</div><div class="value" id="sumWeight">0 Kg</div></div>
+            <div class="line"><div class="label">Peso total</div><div class="value" id="sumWeightTotal">0 Kg</div></div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <div style="display:flex;gap:8px;">
+              <button id="copyBtn" class="copy-btn">Copiar totais</button>
+              <button id="exportCsv" class="copy-btn">Exportar CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Materiais</div>
+            <div class="small">Por 1 unidade · Total</div>
+          </div>
+
+          <table id="materialsTable" aria-live="polite">
+            <thead>
+              <tr>
+                <th>Material / Propriedade</th>
+                <th>Por 1</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="materialsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ITEMS atualizados com Price_SP (S/P) e Price_CP (C/P) conforme sua lista.
+   Adicionado Heavy Sniper MK com o preço/peso/materiais informados. */
+
+const ITEMS = [
+  // Rifles (com novos preços SP/CP)
+  {category:"Rifles", item:"G36C", Price_SP:140000, Price_CP:120000, WeightKg:8.75, Borracha:425, Plastico:425, Vidro:305, Pecas_de_Armas:10, Aluminio:300, Cobre:425, Mola_de_Metal:3, Corpo:1},
+  {category:"Rifles", item:"MTAR",  Price_SP:150000, Price_CP:120000, WeightKg:7.5, Borracha:0, Plastico:0, Vidro:0, Pecas_de_Armas:0, Aluminio:0, Cobre:0, Mola_de_Metal:0, Corpo:0},
+  {category:"Rifles", item:"AK-74N", Price_SP:110000, Price_CP:100000, WeightKg:7.75, Borracha:425, Plastico:425, Vidro:305, Pecas_de_Armas:10, Aluminio:300, Cobre:425, Mola_de_Metal:3, Corpo:1},
+  {category:"Rifles", item:"QBZ-95", Price_SP:100000, Price_CP:90000, WeightKg:8.0, Borracha:0, Plastico:0, Vidro:0, Pecas_de_Armas:0, Aluminio:0, Cobre:0, Mola_de_Metal:0, Corpo:0},
+  {category:"Rifles", item:"AK-102", Price_SP:110000, Price_CP:95000, WeightKg:7.75, Borracha:400, Plastico:400, Vidro:275, Pecas_de_Armas:10, Aluminio:345, Cobre:425, Mola_de_Metal:3, Corpo:1},
+
+  // Heavy Sniper MK (adicionado conforme solicitado)
+  {category:"Rifles", item:"Heavy Sniper MK", Price_SP:4000000, Price_CP:4000000, WeightKg:4.25,
+    Borracha:400, Plastico:400, Vidro:275, Pecas_de_Armas:10, Aluminio:345, Cobre:425, Mola_de_Metal:3, Corpo:1},
+
+  // Submetralhadoras
+  {category:"Submetralhadoras", item:"Uzi", Price_SP:90000, Price_CP:75000, WeightKg:4.25, Borracha:235, Plastico:275, Vidro:225, Pecas_de_Armas:5, Aluminio:175, Cobre:175, Mola_de_Metal:2, Corpo:1},
+  {category:"Submetralhadoras", item:"MAC-10", Price_SP:90000, Price_CP:75000, WeightKg:5.25, Borracha:235, Plastico:275, Vidro:225, Pecas_de_Armas:5, Aluminio:175, Cobre:175, Mola_de_Metal:2, Corpo:1},
+  {category:"Submetralhadoras", item:"F2000", Price_SP:15225, Price_CP:15225, WeightKg:5.75, Borracha:305, Plastico:305, Vidro:375, Pecas_de_Armas:5, Aluminio:225, Cobre:225, Mola_de_Metal:2, Corpo:1},
+  {category:"Submetralhadoras", item:"Glock Rajada", Price_SP:90000, Price_CP:75000, WeightKg:2.75, Borracha:145, Plastico:155, Vidro:145, Pecas_de_Armas:5, Aluminio:100, Cobre:100, Mola_de_Metal:2, Corpo:1},
+
+  // Pistolas (apliquei o valor "PISTOLA" em ambas as pistolas existentes)
+  {category:"Pistolas", item:"Tourus TH1911", Price_SP:50000, Price_CP:35000, WeightKg:3.75, Borracha:155, Plastico:165, Vidro:155, Pecas_de_Armas:5, Aluminio:100, Cobre:100, Mola_de_Metal:1, Corpo:1},
+  {category:"Pistolas", item:"M45A1", Price_SP:50000, Price_CP:35000, WeightKg:2.75, Borracha:155, Plastico:175, Vidro:155, Pecas_de_Armas:5, Aluminio:100, Cobre:100, Mola_de_Metal:1, Corpo:1},
+
+  // Munição e diversos (mantive como antes, sem SP/CP extra)
+  {category:"Munições", item:"Munição de Sniper", Price_SP:25, Price_CP:25, WeightKg:0.025, Aluminio:18, Cobre:12, Frasco_de_Pólvora:1},
+  {category:"Diversos", item:"Seringa de Metadona", Price_SP:475, Price_CP:475, WeightKg:0.05, Acido_Sulfurico:5, Alcool:5, Analgesicos:2},
+  {category:"Diversos", item:"Reais (Lavagem de Dinheiro)", Price_SP:1, Price_CP:1, WeightKg:0, Dinheiro_Sujo:10000, Agua_Destilada:6, Cloro:6}
+];
+
+/* Propriedades a exibir na tabela */
+const PROPS = [
+  "Price_SP","Price_CP","WeightKg",
+  "Borracha","Plastico","Vidro","Pecas_de_Armas","Aluminio","Cobre","Mola_de_Metal","Corpo",
+  "Frasco_de_Pólvora","Acido_Sulfurico","Alcool","Analgesicos","Dinheiro_Sujo","Agua_Destilada","Cloro"
+];
+
+const LABELS = {
+  Price_SP: "Preço S/P (R$)",
+  Price_CP: "Preço C/P (R$)",
+  WeightKg: "Peso (Kg)",
+  Borracha: "Borracha",
+  Plastico: "Plástico",
+  Vidro: "Vidro",
+  Pecas_de_Armas: "Peças de Armas",
+  Aluminio: "Alumínio",
+  Cobre: "Cobre",
+  Mola_de_Metal: "Mola de Metal",
+  Corpo: "Corpo (Rifle/Sub/Pistola)",
+  Frasco_de_Pólvora: "Frasco de Pólvora",
+  Acido_Sulfurico: "Ácido Sulfúrico",
+  Alcool: "Álcool",
+  Analgesicos: "Analgésicos",
+  Dinheiro_Sujo: "Dinheiro Sujo",
+  Agua_Destilada: "Água Destilada",
+  Cloro: "Cloro"
+};
+
+function formatNumber(n){
+  if (typeof n !== 'number' || !isFinite(n)) return "0";
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+  return Number(n.toFixed(3)).toString();
+}
+function formatMoney(n){
+  if (typeof n !== 'number' || !isFinite(n)) return "R$ 0";
+  return "R$ " + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function formatWeight(n){
+  if (typeof n !== 'number' || !isFinite(n)) return "0 Kg";
+  return formatNumber(Number(n.toFixed(3))) + " Kg";
+}
+
+/* Popula select com optgroups por categoria */
+(function populateSelect(){
+  const sel = document.getElementById('itemSelect');
+  const categories = {};
+  ITEMS.forEach(it => {
+    categories[it.category] = categories[it.category] || [];
+    categories[it.category].push(it);
+  });
+  sel.innerHTML = "";
+  const placeholder = document.createElement('option');
+  placeholder.value = "";
+  placeholder.textContent = "— Escolha um item —";
+  sel.appendChild(placeholder);
+  for (const cat of Object.keys(categories)){
+    const og = document.createElement('optgroup');
+    og.label = cat;
+    categories[cat].forEach(it => {
+      const o = document.createElement('option');
+      o.value = it.item;
+      o.textContent = it.item;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+})();
+
+const qtyInput = document.getElementById('qtyInput');
+const applyBtn = document.getElementById('applyBtn');
+
+function findItemByName(name){
+  return ITEMS.find(it => it.item === name);
+}
+
+function calcAndRender(){
+  const itemName = document.getElementById('itemSelect').value;
+  const qty = Number(qtyInput.value) || 0;
+  const tbody = document.getElementById('materialsBody');
+
+  if(!itemName || qty <= 0){
+    document.getElementById('sumItem').textContent = "—";
+    document.getElementById('sumCategory').textContent = "—";
+    document.getElementById('sumPriceSP').textContent = "R$ 0";
+    document.getElementById('sumPriceSPTotal').textContent = "R$ 0";
+    document.getElementById('sumPriceCP').textContent = "R$ 0";
+    document.getElementById('sumPriceCPTotal').textContent = "R$ 0";
+    document.getElementById('sumWeight').textContent = "0 Kg";
+    document.getElementById('sumWeightTotal').textContent = "0 Kg";
+    tbody.innerHTML = "";
+    return;
+  }
+
+  const it = findItemByName(itemName);
+  if(!it) return;
+
+  // resumo
+  document.getElementById('sumItem').textContent = it.item;
+  document.getElementById('sumCategory').textContent = it.category || "";
+
+  const sp = Number(it.Price_SP || 0);
+  const cp = Number(it.Price_CP || sp || 0); // se não tiver CP, usa SP
+  document.getElementById('sumPriceSP').textContent = formatMoney(sp);
+  document.getElementById('sumPriceSPTotal').textContent = formatMoney(sp * qty);
+  document.getElementById('sumPriceCP').textContent = formatMoney(cp);
+  document.getElementById('sumPriceCPTotal').textContent = formatMoney(cp * qty);
+
+  document.getElementById('sumWeight').textContent = formatWeight(Number(it.WeightKg || 0));
+  document.getElementById('sumWeightTotal').textContent = formatWeight(Number(it.WeightKg || 0) * qty);
+
+  // materiais
+  tbody.innerHTML = "";
+  PROPS.forEach(prop => {
+    const per = Number(it[prop] || 0);
+    const total = per * qty;
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.textContent = LABELS[prop] || prop;
+
+    const tdPer = document.createElement('td');
+    if(prop === 'Price_SP' || prop === 'Price_CP'){
+      tdPer.textContent = formatMoney(per);
+    } else if(prop === 'WeightKg'){
+      tdPer.textContent = formatWeight(per);
+    } else {
+      tdPer.textContent = formatNumber(per);
+    }
+
+    const tdTotal = document.createElement('td');
+    if(prop === 'Price_SP' || prop === 'Price_CP'){
+      tdTotal.textContent = formatMoney(total);
+    } else if(prop === 'WeightKg'){
+      tdTotal.textContent = formatWeight(total);
+    } else {
+      tdTotal.textContent = formatNumber(total);
+    }
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdPer);
+    tr.appendChild(tdTotal);
+    tbody.appendChild(tr);
+  });
+}
+
+/* eventos */
+applyBtn.addEventListener('click', calcAndRender);
+qtyInput.addEventListener('keyup', (e) => { if(e.key === 'Enter') calcAndRender(); });
+document.getElementById('itemSelect').addEventListener('change', calcAndRender);
+
+/* copiar totais */
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const itemName = document.getElementById('itemSelect').value;
+  const qty = Number(qtyInput.value) || 0;
+  if(!itemName || qty <= 0){ alert("Escolha um item e coloque uma quantidade válida."); return; }
+  const rows = Array.from(document.querySelectorAll('#materialsBody tr'));
+  const lines = [];
+  lines.push(`Item: ${itemName} | Quantidade: ${qty}`);
+  rows.forEach(r => {
+    const name = r.children[0].textContent.trim();
+    const total = r.children[2].textContent.trim();
+    lines.push(`${name}: ${total}`);
+  });
+  const text = lines.join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("Totais copiados para a área de transferência.");
+  } catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    alert("Totais copiados (fallback).");
+  }
+});
+
+/* export CSV */
+document.getElementById('exportCsv').addEventListener('click', () => {
+  const itemName = document.getElementById('itemSelect').value;
+  const qty = Number(qtyInput.value) || 0;
+  if(!itemName || qty <= 0){ alert("Escolha um item e coloque uma quantidade válida."); return; }
+  const rows = Array.from(document.querySelectorAll('#materialsBody tr'));
+  const csvLines = [];
+  csvLines.push(["Item", itemName].join(","));
+  csvLines.push(["Quantidade", qty].join(","));
+  csvLines.push("");
+  csvLines.push(["Material/Propriedade","Por 1","Total"].join(","));
+  rows.forEach(r => {
+    const name = r.children[0].textContent.trim();
+    const per = r.children[1].textContent.trim();
+    const total = r.children[2].textContent.trim();
+    const safe = v => `"${v.replace(/\"/g,'""')}"`;
+    csvLines.push([safe(name), safe(per), safe(total)].join(","));
+  });
+  const csv = csvLines.join("\n");
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${itemName.replace(/\s+/g,'_')}_quant${qty}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* inicial */
+calcAndRender();
+</script>
+</body>
+</html>
