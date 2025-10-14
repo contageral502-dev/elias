@@ -34,7 +34,7 @@
 
   <div class="row">
     <div class="col">
-      <label for="qtyInput">Quantidade de receitas</label>
+      <label for="qtyInput">Quantidade</label>
       <input id="qtyInput" type="number" min="1" value="1" />
     </div>
     <div style="width:150px">
@@ -65,7 +65,7 @@
   <h3 style="margin-top:18px">Materiais necessários</h3>
   <table>
     <thead>
-      <tr><th>Material / Propriedade</th><th>Por 1 receita</th><th>Total</th></tr>
+      <tr><th>Material / Propriedade</th><th>Por 1</th><th>Total</th></tr>
     </thead>
     <tbody id="materialsBody"></tbody>
   </table>
@@ -73,7 +73,6 @@
 </div>
 
 <script>
-// ==== Dados dos Itens ====
 const ITEMS = [
   {category:"Rifles", item:"G36C", Price_SP:140000, Price_CP:120000, WeightKg:8.75, Borracha:425, Plastico:425, Vidro:305, Pecas_de_Armas:10, Aluminio:300, Cobre:425, Mola_de_Metal:3, Corpo:1},
   {category:"Rifles", item:"AK-74N", Price_SP:110000, Price_CP:100000, WeightKg:7.75, Borracha:425, Plastico:425, Vidro:305, Pecas_de_Armas:10, Aluminio:300, Cobre:425, Mola_de_Metal:3, Corpo:1},
@@ -133,16 +132,15 @@ function calcAndRender(){
   const outputMultiplier = item.OutputQty || 1;
   const totalProduced = qty * outputMultiplier;
 
-  // Resumo
   summaryBox.style.display = '';
   document.getElementById('sumItem').textContent = item.item;
   document.getElementById('sumCategory').textContent = item.category || '—';
   const sp = Number(item.Price_SP || 0);
   const cp = Number(item.Price_CP || sp || 0);
   document.getElementById('sumPriceSP').textContent = formatMoney(sp);
-  document.getElementById('sumPriceSPTotal').textContent = formatMoney(sp * totalProduced);
+  document.getElementById('sumPriceSPTotal').textContent = formatMoney(sp * qty);
   document.getElementById('sumPriceCP').textContent = formatMoney(cp);
-  document.getElementById('sumPriceCPTotal').textContent = formatMoney(cp * totalProduced);
+  document.getElementById('sumPriceCPTotal').textContent = formatMoney(cp * qty);
   document.getElementById('sumWeight').textContent = formatWeight(Number(item.WeightKg || 0));
   document.getElementById('sumWeightTotal').textContent = formatWeight(Number(item.WeightKg || 0) * totalProduced);
 
@@ -164,9 +162,8 @@ function calcAndRender(){
     document.getElementById('outputQtySection').style.display = 'none';
   }
 
-  // Materiais
   materialsBody.innerHTML = '';
-  const materialKeys = Object.keys(LABELS);
+  const materialKeys = ["Borracha","Plastico","Vidro","Pecas_de_Armas","Aluminio","Cobre","Mola_de_Metal","Corpo","Frasco_de_Pólvora","Acido_Sulfurico","Alcool","Analgesicos","Dinheiro_Sujo","Agua_Destilada","Cloro"];
   materialKeys.forEach(k => {
     const val = Number(item[k] || 0);
     if(val > 0){
@@ -178,10 +175,10 @@ function calcAndRender(){
 
       if(k === 'Dinheiro_Sujo'){
         perCell.textContent = formatMoney(val);
-        totalCell.textContent = formatMoney(val * qty * outputMultiplier);
+        totalCell.textContent = formatMoney(val * qty);
       } else {
         perCell.textContent = String(val);
-        totalCell.textContent = String(val * qty * outputMultiplier);
+        totalCell.textContent = String(val * qty);
       }
 
       tr.appendChild(nameCell);
@@ -192,39 +189,10 @@ function calcAndRender(){
   });
 }
 
-// Copiar totais
-document.getElementById('copyBtn').addEventListener('click', () => {
-  const txt = `
-Item: ${document.getElementById('sumItem').textContent}
-Categoria: ${document.getElementById('sumCategory').textContent}
-Preço total S/P: ${document.getElementById('sumPriceSPTotal').textContent}
-Preço total C/P: ${document.getElementById('sumPriceCPTotal').textContent}
-Peso total: ${document.getElementById('sumWeightTotal').textContent}
-Produzido: ${document.getElementById('sumOutputQty').textContent || '—'}
-  `.trim();
-  navigator.clipboard.writeText(txt);
-  alert("Totais copiados!");
-});
-
-// Exportar CSV
-document.getElementById('csvBtn').addEventListener('click', () => {
-  let csv = "Material,Por 1 receita,Total\n";
-  const rows = materialsBody.querySelectorAll('tr');
-  rows.forEach(r => {
-    const cols = r.querySelectorAll('td');
-    csv += `${cols[0].textContent},${cols[1].textContent},${cols[2].textContent}\n`;
-  });
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `materiais_${itemSelect.value.replace(/\s+/g,'_')}.csv`;
-  a.click();
-});
-
 calcBtn.addEventListener('click', calcAndRender);
 itemSelect.addEventListener('change', calcAndRender);
 qtyInput.addEventListener('keyup', (e)=>{ if(e.key==='Enter') calcAndRender(); });
+
 calcAndRender();
 </script>
 </body>
